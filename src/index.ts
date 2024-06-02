@@ -104,7 +104,7 @@ interface MediaTypeResults {
 }
 
 export type IOpenPicker = <T extends MediaType = MediaType.ALL>(
-  options: MultiPickerOptions & MediaTypeOptions[T] & Options<T> & SinglePickerOptions<T>
+  options: Options
 ) => Promise<MediaTypeResults[T] | MediaTypeResults[T][]>;
 
 let defaultOptions = {
