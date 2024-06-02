@@ -92,10 +92,10 @@ export interface MultiPickerOptions {
   singleSelectedMode?: false;
 }
 
-interface MediaTypeOptions {
-  [MediaType.VIDEO]: {isExportThumbnail?: boolean};
-  [MediaType.ALL]: MediaTypeOptions[MediaType.VIDEO];
-}
+// interface MediaTypeOptions {
+//   [MediaType.VIDEO]: {isExportThumbnail?: boolean};
+//   [MediaType.ALL]: MediaTypeOptions[MediaType.VIDEO];
+// }
 
 interface MediaTypeResults {
   [MediaType.IMAGE]: ImageResults;
