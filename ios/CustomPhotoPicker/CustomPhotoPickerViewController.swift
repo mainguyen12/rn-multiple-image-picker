@@ -20,6 +20,12 @@ class CustomPhotoPickerViewController: TLPhotosPickerViewController {
         if config.isPreview {
             NotificationCenter.default.addObserver(self, selector: #selector(self.handleCellLongPress(_:)), name: Cell.longPressNotification, object: nil)
         }
+
+        if config.isCrop {
+            self.doneButton.title = nil
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+            collectionView.addGestureRecognizer(tapGesture)
+        }
     }
 
     deinit {
@@ -60,6 +66,22 @@ class CustomPhotoPickerViewController: TLPhotosPickerViewController {
 
                 self.present(self.viewerController!, animated: true, completion: nil)
             }
+        }
+    }
+
+    @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        let point = gesture.location(in: collectionView)
+
+        if let indexPath = collectionView.indexPathForItem(at: point) {
+            handlePhotoTap(at: indexPath)
+        }
+    }
+
+    func handlePhotoTap(at indexPath: IndexPath) {
+        guard let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell, let localID = cell.asset?.localIdentifier else { return }
+
+        if let asset = TLPHAsset.asset(with: localID) {
+            self.dismissPhotoPicker!([asset])
         }
     }
 
@@ -132,15 +154,15 @@ extension CustomPhotoPickerViewController: PreviewHeaderViewDelegate {
                         guard
                             let indexPath = self.viewerController?.currentIndexPath,
 
-                            let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell,
+                                let cell = self.collectionView.cellForItem(at: indexPath) as? TLPhotoCollectionViewCell,
 
-                            let localID = cell.asset?.localIdentifier,
+                                let localID = cell.asset?.localIdentifier,
 
-                            var asset = TLPHAsset.asset(with: localID),
+                                var asset = TLPHAsset.asset(with: localID),
 
-                            let phAsset = asset.phAsset,
+                                let phAsset = asset.phAsset,
 
-                            self.canSelect(phAsset: phAsset)
+                                self.canSelect(phAsset: phAsset)
 
                         else { return }
 
@@ -208,19 +230,19 @@ extension CustomPhotoPickerViewController: PreviewFooterViewDelegate {
                 // deselect
                 logDelegate?.deselectedPhoto(picker: self, at: indexPath.row)
                 selectedAssets.remove(at: index)
-                #if swift(>=4.1)
-                    selectedAssets = selectedAssets.enumerated().compactMap { offset, asset -> TLPHAsset? in
-                        var asset = asset
-                        asset.selectedOrder = offset + 1
-                        return asset
-                    }
-                #else
-                    selectedAssets = selectedAssets.enumerated().flatMap { offset, asset -> TLPHAsset? in
-                        var asset = asset
-                        asset.selectedOrder = offset + 1
-                        return asset
-                    }
-                #endif
+#if swift(>=4.1)
+                selectedAssets = selectedAssets.enumerated().compactMap { offset, asset -> TLPHAsset? in
+                    var asset = asset
+                    asset.selectedOrder = offset + 1
+                    return asset
+                }
+#else
+                selectedAssets = selectedAssets.enumerated().flatMap { offset, asset -> TLPHAsset? in
+                    var asset = asset
+                    asset.selectedOrder = offset + 1
+                    return asset
+                }
+#endif
                 cell.selectedAsset = false
                 button.selectedAsset = false
                 self.orderUpdateCells()

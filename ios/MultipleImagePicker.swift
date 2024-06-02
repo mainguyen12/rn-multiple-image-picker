@@ -5,6 +5,8 @@ import UIKit
 
 var _isCrop = true
 var _isPreview = true
+var _cropWidth = 0.0
+var _cropHeight = 0.0
 
 extension TLPhotosPickerConfigure {
     var isPreview: Bool {
@@ -20,6 +22,19 @@ extension TLPhotosPickerConfigure {
             _isCrop = newValue
         }
     }
+    var cropWidth: CGFloat {
+        get { return _cropWidth }
+        set {
+            _cropWidth = newValue
+        }
+    }
+    var cropHeight: CGFloat {
+        get { return _cropHeight }
+        set {
+            _cropHeight = newValue
+        }
+    }
+
 }
 
 var config = TLPhotosPickerConfigure()
@@ -34,11 +49,11 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
     var options = NSMutableDictionary()
     var videoAssets = [PHAsset]()
     var videoCount = 0
-        
+
     // resolve/reject assets
     var resolve: RCTPromiseResolveBlock!
     var reject: RCTPromiseRejectBlock!
-    
+
     @objc(openPicker:withResolver:withRejecter:)
     func openPicker(options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         self.setConfiguration(options: options, resolve: resolve, reject: reject)
@@ -52,25 +67,25 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
                 }
                 self.navigatePicker()
             }
-            
+
         } else {
             self.navigatePicker()
         }
     }
-    
+
     private func fetchAssetCount() -> Int {
         let options = PHFetchOptions()
-        
+
         if config.mediaType != nil {
             let mediaType =
-                config.mediaType == .image ? PHAssetMediaType.image.rawValue : PHAssetMediaType.video.rawValue
+            config.mediaType == .image ? PHAssetMediaType.image.rawValue : PHAssetMediaType.video.rawValue
             options.predicate = NSPredicate(format: "mediaType = %d", mediaType)
         }
-        
+
         let fetchResult = PHAsset.fetchAssets(with: options)
         return fetchResult.count
     }
-    
+
     private func handleLimitedCondition() {
         let count = self.fetchAssetCount()
         print("count: ", count)
@@ -80,14 +95,14 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
             self.navigatePicker()
         }
     }
-    
+
     private func presentLimitedController() {
         DispatchQueue.main.async {
             if #available(iOS 14, *) {
                 if #available(iOS 15, *) {
                     let topViewController = self.getTopMostViewController()!
                     var show = 0
-                    
+
                     PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: topViewController) { _ in
                         let count = self.fetchAssetCount() // check count after presentLimitedLibraryPicker
                         if count == 0 {
@@ -96,7 +111,7 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
                             }
                             return
                         }
-                        
+
                         show += 1 // presentLimitedLibraryPicker run twice and I DONT KNOWWWWW...
                         if show == 1 {
                             topViewController.dismiss(animated: true) {
@@ -104,33 +119,33 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
                             }
                         }
                     }
-                    
+
                 } else {
                     PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: self.getTopMostViewController()!)
                 }
             }
         }
     }
-    
+
     func navigatePicker() {
         let viewController = CustomPhotoPickerViewController()
-        
+
         viewController.delegate = self
-        
+
         // dismissPhotoPicker for CustomPhotoPickerViewController()
         viewController.dismissPhotoPicker = { [weak self] withPHAssets in
             self?.dismissPhotoPicker(withTLPHAssets: withPHAssets)
         }
-        
+
         viewController.didExceedMaximumNumberOfSelection = { [weak self] picker in
             self?.showExceededMaximumAlert(vc: picker, isVideo: false)
         }
-       
+
         viewController.selectedAssets = self.selectedAssets
         viewController.logDelegate = self
-        
+
         viewController.configure = config
-        
+
         DispatchQueue.main.async {
             viewController.modalTransitionStyle = .coverVertical
             viewController.modalPresentationStyle = .fullScreen
@@ -145,17 +160,17 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
         }
         return topMostViewController
     }
-    
+
     private func setConfiguration(options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         self.resolve = resolve
         self.reject = reject
-        
+
         for key in options.keyEnumerator() {
             if key as! String != "selectedAssets" {
                 self.options.setValue(options[key], forKey: key as! String)
             }
         }
-        
+
         // config options
         config.tapHereToChange = self.options["tapHereToChange"] as! String
         config.numberOfColumn = self.options["numberOfColumn"] as! Int
@@ -176,19 +191,22 @@ class MultipleImagePicker: NSObject, UINavigationControllerDelegate {
         config.singleSelectedMode = (self.options["singleSelectedMode"])! as! Bool
         config.maxSelectedAssets = self.options["maxSelectedAssets"] as? Int
         config.selectedColor = UIColor(hex: self.options["selectedColor"] as! String)
-        
+
         config.isPreview = self.options["isPreview"] as? Bool ?? false
-        
+
         config.isCrop = (config.singleSelectedMode && self.options["isCrop"] as! Bool)
-        
+
+        config.cropWidth = self.options["cropWidth"] as? CGFloat ?? 0.0
+        config.cropHeight = self.options["cropHeight"] as? CGFloat ?? 0.0
+
         let mediaType = self.options["mediaType"] as! String
-        
+
         config.mediaType = mediaType == "video" ? PHAssetMediaType.video : mediaType == "image" ? PHAssetMediaType.image : nil
-        
+
         config.nibSet = (nibName: "Cell", bundle: MultipleImagePickerBundle.bundle())
-        
+
         config.allowedPhotograph = self.options["allowedPhotograph"] as! Bool
-        
+
         if options["selectedAssets"] != nil {
             self.handleSelectedAssets(selectedList: options["selectedAssets"] as! NSArray)
         }
@@ -228,7 +246,7 @@ extension MultipleImagePicker: TLPhotosPickerLogDelegate {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
     }
-    
+
     func deselectedPhoto(picker: TLPhotosPickerViewController, at: Int) {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
@@ -237,12 +255,12 @@ extension MultipleImagePicker: TLPhotosPickerLogDelegate {
             self.videoCount -= 1
         }
     }
-    
+
     func selectedPhoto(picker: TLPhotosPickerViewController, at: Int) {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
     }
-    
+
     func selectedAlbum(picker: TLPhotosPickerViewController, title: String, at: Int) {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
@@ -252,30 +270,38 @@ extension MultipleImagePicker: TLPhotosPickerLogDelegate {
 // CropViewControllerDelegate
 extension MultipleImagePicker: CropViewControllerDelegate {
     func cropViewController(_ cropViewController: CropViewController, didCropToImage image: UIImage, withRect cropRect: CGRect, angle: Int) {
+        var resizedImage = image
+        let boundingSize = CGSize(width: config.cropWidth, height: config.cropHeight)
+
+        if config.cropWidth>0 && (config.cropHeight != 0) {
+            resizedImage = image.resizedImageToFit(in: boundingSize, scaleIfSmaller: true)!
+        }
+
         guard
             let TLAsset = self.selectedAssets.first,
-            let filePath = getImagePathFromUIImage(uiImage: image, prefix: "crop")
+            let filePath = getImagePathFromUIImage(uiImage: resizedImage , prefix: "crop")
         else {
             self.dismissComplete()
             return
         }
-        
+
         // Dismiss twice for crop controller & picker controller
         DispatchQueue.main.async {
             cropViewController.dismiss(animated: true) {
                 let alert = UIAlertController(title: nil, message: "Please wait...", preferredStyle: .alert)
-                        
+
                 alert.showLoading()
 
                 self.getTopMostViewController()?.present(alert, animated: true) {
                     self.fetchAsset(TLAsset: TLAsset) { object in
-                            
-                        object.data!["crop"] = [
-                            "height": image.size.height,
-                            "width": image.size.width,
+                        let size = image.getFileSize(filePath)
+                        object.data?["crop"]  = [
+                            "height": resizedImage.size.height,
+                            "width": resizedImage.size.width,
                             "path": filePath,
+                            "size": size!
                         ]
-                            
+
                         DispatchQueue.main.async {
                             self.resolve([object.data])
                             alert.dismiss(animated: true) {
@@ -292,27 +318,27 @@ extension MultipleImagePicker: CropViewControllerDelegate {
 extension UIAlertController {
     func showLoading() {
         let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
-        
+
         loadingIndicator.hidesWhenStopped = true
         loadingIndicator.style = UIActivityIndicatorView.Style.gray
-        
+
         if #available(iOS 13.0, *) {
             loadingIndicator.color = .secondaryLabel
         } else {
             loadingIndicator.color = .black
         }
-        
+
         loadingIndicator.startAnimating()
-        
+
         self.view.addSubview(loadingIndicator)
     }
 }
 
 extension MultipleImagePicker: TLPhotosPickerViewControllerDelegate {
-    func shouldDismissPhotoPicker(withTLPHAssets: [TLPHAsset]) -> Bool {
+   func shouldDismissPhotoPicker(withTLPHAssets: [TLPHAsset]) -> Bool {
         return false
     }
-    
+
     func photoPickerDidCancel() {
         self.reject("PICKER_CANCELLED", "User has canceled", nil)
     }
@@ -322,43 +348,47 @@ extension MultipleImagePicker: TLPhotosPickerViewControllerDelegate {
             self.getTopMostViewController()?.dismiss(animated: true, completion: nil)
         }
     }
-    
+
     func presentCropViewController(image: UIImage) {
         let cropViewController = CropViewController(croppingStyle: (self.options["isCropCircle"] as! Bool) ? .circular : .default, image: image)
         cropViewController.delegate = self
         cropViewController.doneButtonTitle = config.doneTitle
         cropViewController.doneButtonColor = config.selectedColor
-        
         cropViewController.cancelButtonTitle = config.cancelTitle
-        
+
+        cropViewController.customAspectRatio = CGSize(width: config.cropWidth, height: config.cropHeight)
+        cropViewController.aspectRatioPickerButtonHidden = true
+        cropViewController.resetAspectRatioEnabled = false
+        cropViewController.aspectRatioLockEnabled = true
+
         self.getTopMostViewController()?.present(cropViewController, animated: true, completion: nil)
     }
-    
+
     func fetchAsset(TLAsset: TLPHAsset, completion: @escaping (MediaResponse) -> Void) {
         // set image / video request option.
         let imageRequestOptions = PHImageRequestOptions()
         let videoRequestOptions = PHVideoRequestOptions()
-        
+
         imageRequestOptions.deliveryMode = .fastFormat
         imageRequestOptions.resizeMode = .fast
         imageRequestOptions.isNetworkAccessAllowed = true
         imageRequestOptions.isSynchronous = false
-        
+
         videoRequestOptions.version = PHVideoRequestOptionsVersion.current
         videoRequestOptions.deliveryMode = PHVideoRequestOptionsDeliveryMode.automatic
         videoRequestOptions.isNetworkAccessAllowed = true
 
         TLAsset.tempCopyMediaFile(videoRequestOptions: videoRequestOptions, imageRequestOptions: imageRequestOptions, livePhotoRequestOptions: nil, exportPreset: AVAssetExportPresetHighestQuality, convertLivePhotosToJPG: true, progressBlock: { _ in
         }, completionBlock: { filePath, fileType in
-            
+
             let object = MediaResponse(filePath: filePath.absoluteString, mime: fileType, withTLAsset: TLAsset, isExportThumbnail: self.options["isExportThumbnail"] as! Bool)
-                        
+
             DispatchQueue.main.async {
                 completion(object)
             }
         })
     }
-    
+
     func dismissPhotoPicker(withTLPHAssets: [TLPHAsset]) {
         // check with asset picker
         if withTLPHAssets.count == 0 {
@@ -366,23 +396,23 @@ extension MultipleImagePicker: TLPhotosPickerViewControllerDelegate {
             self.dismissComplete()
             return
         }
-        
+
         // define count
         let withTLPHAssetsCount = withTLPHAssets.count
         let selectedAssetsCount = self.selectedAssets.count
-        
+
         // check logic code for isCrop
-        
+
         let isCrop = config.isCrop && withTLPHAssets.first?.type == .photo
-        
+
         // check difference
         if withTLPHAssetsCount == selectedAssetsCount && withTLPHAssets[withTLPHAssetsCount - 1].phAsset?.localIdentifier == self.selectedAssets[selectedAssetsCount - 1].phAsset?.localIdentifier && !isCrop {
             self.dismissComplete()
             return
         }
-        
+
         self.selectedAssets = withTLPHAssets
-        
+
         if isCrop {
             let uiImage = withTLPHAssets.first?.fullResolutionImage
             if uiImage != nil {
@@ -390,18 +420,18 @@ extension MultipleImagePicker: TLPhotosPickerViewControllerDelegate {
                 return
             }
         }
-        
+
         let selections = NSMutableArray(array: withTLPHAssets)
-        
+
         // add loading view
         let alert = UIAlertController(title: nil, message: "Please wait...", preferredStyle: .alert)
-        
+
         alert.showLoading()
-        
+
         // handle controller
         self.getTopMostViewController()?.present(alert, animated: true, completion: {
             let group = DispatchGroup()
-            
+
             for TLAsset in withTLPHAssets {
                 group.enter()
                 self.fetchAsset(TLAsset: TLAsset) { object in
@@ -410,7 +440,7 @@ extension MultipleImagePicker: TLPhotosPickerViewControllerDelegate {
                     group.leave()
                 }
             }
-            
+
             group.notify(queue: .main) { [self] in
                 self.resolve(selections)
                 DispatchQueue.main.async {
@@ -427,7 +457,7 @@ extension MultipleImagePicker: TLPhotosPickerViewControllerDelegate {
         alert.addAction(UIAlertAction(title: self.options["messageTitleButton"] as? String, style: .default, handler: nil))
         vc.present(alert, animated: true, completion: nil)
     }
-    
+
     func canSelectAsset(phAsset: PHAsset) -> Bool {
         let maxVideo = self.options["maxVideo"]
         if phAsset.mediaType == .video {

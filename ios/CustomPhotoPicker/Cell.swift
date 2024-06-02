@@ -60,7 +60,7 @@ class Cell: TLPhotoCollectionViewCell {
 
     override var isCameraCell: Bool {
         didSet {
-            self.orderLabel?.isHidden = self.isCameraCell
+            self.orderLabel?.isHidden = self.isCameraCell || config.isCrop
             self.durationLabel?.isHidden = self.isCameraCell
         }
     }

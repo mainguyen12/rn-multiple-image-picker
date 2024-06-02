@@ -62,7 +62,7 @@ class CropEngine(cropOption: UCrop.Options) : CropFileEngine {
 }
 
 fun getSandboxPath(context: Context): String {
-    val externalFilesDir: File? = context.getExternalFilesDir("")
+    val externalFilesDir: File? = context.cacheDir
     val customFile = File(externalFilesDir?.absolutePath, "Sandbox")
     if (!customFile.exists()) {
         customFile.mkdirs()

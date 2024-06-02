@@ -1,4 +1,5 @@
-import { NativeModules, Image } from 'react-native';
+import {NativeModules, Image, Dimensions} from 'react-native';
+const {width, height} = Dimensions.get('window');
 
 export enum MediaType {
   VIDEO = 'video',
@@ -70,6 +71,9 @@ export type Options<T extends MediaType = MediaType.ALL> = {
   thumbnailWidth?: number;
   thumbnailHeight?: number;
   haveThumbnail?: boolean;
+  //crop
+  cropWidth?: number;
+  cropHeight?: number;
 };
 
 export interface SinglePickerOptions {
@@ -83,7 +87,7 @@ export interface MultiPickerOptions {
 }
 
 interface MediaTypeOptions {
-  [MediaType.VIDEO]: { isExportThumbnail?: boolean };
+  [MediaType.VIDEO]: {isExportThumbnail?: boolean};
   [MediaType.ALL]: MediaTypeOptions[MediaType.VIDEO];
 }
 
@@ -94,15 +98,82 @@ interface MediaTypeResults {
 }
 
 export type IOpenPicker = <T extends MediaType = MediaType.ALL>(
-  options: MultiPickerOptions & MediaTypeOptions[T] & Options<T>
+  options: MultiPickerOptions & MediaTypeOptions[T] & Options<T> & SinglePickerOptions<T>
 ) => Promise<MediaTypeResults[T][]>;
 
-type MultipleImagePickerType = {
-  openPicker: IOpenPicker;
+let defaultOptions = {
+  //**iOS**//
+  usedPrefetch: false,
+  allowedAlbumCloudShared: false,
+  muteAudio: true,
+  autoPlay: true,
+  //resize thumbnail
+  haveThumbnail: true,
+
+  thumbnailWidth: Math.round(width / 2),
+  thumbnailHeight: Math.round(height / 2),
+  allowedLivePhotos: true,
+  preventAutomaticLimitedAccessAlert: true, // newest iOS 14
+  emptyMessage: 'No albums',
+  selectMessage: 'Select',
+  deselectMessage: 'Deselect',
+  selectedColor: '#FB9300',
+  maximumMessageTitle: 'Notification',
+  maximumMessage: 'You have selected the maximum number of media allowed',
+  maximumVideoMessage: 'You have selected the maximum number of video allowed',
+  messageTitleButton: 'OK',
+  cancelTitle: 'Cancel',
+  tapHereToChange: 'Tap here to change',
+
+  //****//
+
+  //**Android**//
+
+  //****//
+
+  //**Both**//
+  usedCameraButton: true,
+  allowedVideo: true,
+  allowedPhotograph: true, // for camera : allow this option when you want to take a photos
+  allowedVideoRecording: false, //for camera : allow this option when you want to recording video.
+  maxVideoDuration: 60, //for camera : max video recording duration
+  numberOfColumn: 3,
+  maxSelectedAssets: 20,
+  doneTitle: 'Done',
+  isPreview: true,
+  mediaType: 'all',
+  isExportThumbnail: false,
+  maxVideo: 20,
+  selectedAssets: [],
+  singleSelectedMode: false,
+  isCrop: false,
+  isCropCircle: false,
 };
 
-const { MultipleImagePicker } = NativeModules;
+export const openPicker: IOpenPicker = (optionsPicker) => {
+  const options = {
+    ...defaultOptions,
+    ...optionsPicker,
+  };
+  const isSingle = options?.singleSelectedMode ?? false;
+  if (isSingle) options.selectedAssets = [];
 
-export const { openPicker } = MultipleImagePicker as MultipleImagePickerType;
+  return new Promise(async (resolve, reject) => {
+    try {
+      const response = await NativeModules.MultipleImagePicker.openPicker(
+        options
+      );
+      if (response?.length) {
+        if (isSingle) {
+          resolve(response[0]);
+        }
+        resolve(response);
+        return;
+      }
+      resolve([]);
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
 
-export default MultipleImagePicker as MultipleImagePickerType;

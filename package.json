@@ -5,7 +5,7 @@
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "src/index.d.ts",
-  "react-native": "src/index",
+  "react-native": "src/index.d",
   "source": "src/index",
   "files": [
     "src",
