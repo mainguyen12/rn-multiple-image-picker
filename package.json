@@ -4,8 +4,8 @@
   "description": "react-native-multiple-image-picker enables application to pick images and videos from multiple smart album in iOS/Android, similar to the current facebook app.",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
-  "types": "src/index.d.ts",
-  "react-native": "src/index.d",
+  "types": "src/index",
+  "react-native": "src/index",
   "source": "src/index",
   "files": [
     "src",

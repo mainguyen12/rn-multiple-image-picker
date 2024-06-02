@@ -19,6 +19,12 @@ export type Results = {
   realPath?: string;
   parentFolderName?: string;
   creationDate?: string;
+  crop?: {
+    width: number;
+    height: number;
+    path: string;
+    size: number
+  }
 };
 
 export interface VideoResults extends Results {
@@ -99,7 +105,7 @@ interface MediaTypeResults {
 
 export type IOpenPicker = <T extends MediaType = MediaType.ALL>(
   options: MultiPickerOptions & MediaTypeOptions[T] & Options<T> & SinglePickerOptions<T>
-) => Promise<MediaTypeResults[T][]>;
+) => Promise<MediaTypeResults[T] | MediaTypeResults[T][]>;
 
 let defaultOptions = {
   //**iOS**//
