@@ -65,7 +65,7 @@ class MultipleImagePickerModule(reactContext: ReactApplicationContext) :
     PictureSelector.create(activity)
       .openGallery(if (mediaType == "video") SelectMimeType.ofVideo() else if (mediaType == "image") SelectMimeType.ofImage() else SelectMimeType.ofAll())
       .setImageEngine(imageEngine)
-      .setMaxSelectNum(1)
+      .setMaxSelectNum(maxSelectedAssets)
       .setImageSpanCount(numberOfColumn)
       .setCropEngine(onSetCropEngine())
       .isDirectReturnSingle(true)
