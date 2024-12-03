@@ -250,10 +250,6 @@ extension MultipleImagePicker: TLPhotosPickerLogDelegate {
     func deselectedPhoto(picker: TLPhotosPickerViewController, at: Int) {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
-        let cell = picker.collectionView(picker.collectionView, cellForItemAt: IndexPath(row: at, section: 0)) as! Cell
-        if cell.asset?.mediaType == PHAssetMediaType.video {
-            self.videoCount -= 1
-        }
     }
 
     func selectedPhoto(picker: TLPhotosPickerViewController, at: Int) {
